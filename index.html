@@ -16,6 +16,9 @@ body{
 }
 .container{
     width:500px;
+    max-width:90vw;
+    max-height:90vh;
+    overflow-y:auto;
     background:white;
     padding:20px;
     border-radius:10px;
@@ -54,6 +57,44 @@ button{
         transform:translateY(110vh) rotate(360deg);
     }
 }
+#review{
+    text-align:left;
+    margin-top:10px;
+}
+.review-item{
+    border:1px solid #ddd;
+    border-radius:8px;
+    padding:12px 14px;
+    margin-bottom:10px;
+    font-size:15px;
+}
+.review-item.correct{
+    background:#eafaf0;
+    border-color:#8fd9ab;
+}
+.review-item.wrong{
+    background:#fdecea;
+    border-color:#f3a6a0;
+}
+.review-question{
+    font-weight:bold;
+    margin-bottom:6px;
+}
+.review-line{
+    margin:2px 0;
+}
+.tag-correct{
+    color:#2e7d32;
+    font-weight:bold;
+}
+.tag-wrong{
+    color:#c62828;
+    font-weight:bold;
+}
+.tag-unanswered{
+    color:#888;
+    font-style:italic;
+}
 </style>
 </head>
 <body>
@@ -68,6 +109,7 @@ button{
 <button id="nextBtn" onclick="nextQuestion()">Next</button>
 </div>
 <h2 id="result"></h2>
+<div id="review"></div>
 <button id="restartBtn" onclick="restartQuiz()" style="display:none;background:#2196F3;color:white;border:none;">Play Again</button>
 </div>
 <script>
@@ -177,6 +219,7 @@ const TOTAL_QUESTIONS = 5;
 let quiz = [];
 let currentQuestion = 0;
 let score = 0;
+let userAnswers = [];
 startQuiz();
 function shuffleArray(arr){
 const copy = arr.slice();
@@ -190,6 +233,8 @@ function startQuiz(){
 quiz = shuffleArray(questionBank).slice(0, TOTAL_QUESTIONS);
 currentQuestion = 0;
 score = 0;
+userAnswers = new Array(quiz.length).fill(null);
+document.getElementById("review").innerHTML = "";
 loadQuestion();
 }
 function loadQuestion(){
@@ -203,39 +248,81 @@ document.getElementById("opt2").innerHTML =
 quiz[currentQuestion].options[2];
 document.getElementById("opt3").innerHTML =
 quiz[currentQuestion].options[3];
+for(let i=0;i<4;i++){
+document.getElementById("opt"+i).style.background = "";
+}
 }
 function checkAnswer(option){
-if(option == quiz[currentQuestion].answer){
-score++;
+userAnswers[currentQuestion] = option;
+const correctIndex = quiz[currentQuestion].answer;
+
+for(let i=0;i<4;i++){
+const btn = document.getElementById("opt"+i);
+btn.style.background = (i === option) ? "#cfe3ff" : "";
 }
-document.getElementById("opt0").disabled = true;
-document.getElementById("opt1").disabled = true;
-document.getElementById("opt2").disabled = true;
-document.getElementById("opt3").disabled = true;
 }
 function nextQuestion(){
 currentQuestion++;
 if(currentQuestion < quiz.length){
-document.getElementById("opt0").disabled = false;
-document.getElementById("opt1").disabled = false;
-document.getElementById("opt2").disabled = false;
-document.getElementById("opt3").disabled = false;
+for(let i=0;i<4;i++){
+document.getElementById("opt"+i).style.background = "";
+}
 loadQuestion();
 }
 else{
 document.getElementById("quiz").style.display = "none";
+score = 0;
+quiz.forEach((q, i) => {
+if(userAnswers[i] === q.answer){
+score++;
+}
+});
 let message = "Quiz Finished!<br><br>Your Score : " + score + " / " + quiz.length;
 if(score === quiz.length){
 message += "<br><br>🎊🎉 Congratulations! 🎉🎊";
 launchConfetti();
 }
 document.getElementById("result").innerHTML = message;
+document.getElementById("review").innerHTML = buildReview();
 document.getElementById("restartBtn").style.display = "block";
 }
+}
+
+function buildReview(){
+let html = "<h3 style='text-align:center;'>Answer Review</h3>";
+
+quiz.forEach((q, i) => {
+const userChoice = userAnswers[i];
+const correctChoice = q.answer;
+const wasAnswered = userChoice !== null;
+const wasCorrect = wasAnswered && userChoice === correctChoice;
+
+html += `<div class="review-item ${wasAnswered ? (wasCorrect ? "correct" : "wrong") : "wrong"}">`;
+html += `<div class="review-question">${i+1}. ${q.question}</div>`;
+
+if(wasAnswered){
+html += `<div class="review-line">Your answer: ${q.options[userChoice]} `;
+html += wasCorrect
+? `<span class="tag-correct">✔ Correct</span>`
+: `<span class="tag-wrong">✘ Wrong</span>`;
+html += `</div>`;
+if(!wasCorrect){
+html += `<div class="review-line">Correct answer: <b>${q.options[correctChoice]}</b></div>`;
+}
+} else {
+html += `<div class="review-line tag-unanswered">Not answered</div>`;
+html += `<div class="review-line">Correct answer: <b>${q.options[correctChoice]}</b></div>`;
+}
+
+html += `</div>`;
+});
+
+return html;
 }
 function restartQuiz(){
 document.getElementById("restartBtn").style.display = "none";
 document.getElementById("result").innerHTML = "";
+document.getElementById("review").innerHTML = "";
 document.getElementById("quiz").style.display = "block";
 startQuiz();
 }
